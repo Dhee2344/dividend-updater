@@ -2,7 +2,8 @@ import requests
 import json
 import os
 
-# ✅ API
+print("✅ Script started", flush=True)
+
 url = "https://www.nseindia.com/api/corporates-corporateActions?index=equities"
 
 headers = {
@@ -11,27 +12,25 @@ headers = {
     "Referer": "https://www.nseindia.com/"
 }
 
-print("✅ Starting script...")
-
 session = requests.Session()
 session.get("https://www.nseindia.com", headers=headers)
 
+print("✅ Cookies loaded", flush=True)
+
 response = session.get(url, headers=headers)
 
-print("✅ API Response:", response.status_code)
+print("✅ API Response:", response.status_code, flush=True)
 
 result = []
 
-# ✅ Load old data
 if os.path.exists("full_dividends.json"):
     try:
         with open("full_dividends.json", "r") as f:
             result.extend(json.load(f))
-        print("✅ Loaded existing data")
+        print("✅ Loaded old data", flush=True)
     except:
-        print("⚠️ Error loading old data")
+        print("⚠️ Error loading old data", flush=True)
 
-# ✅ Parse data
 try:
     data = response.json()
 
@@ -43,12 +42,11 @@ try:
                 "dividend": str(item.get("faceVal")) + " Rs"
             })
 
-    print("✅ Parsed new data")
+    print("✅ Parsed new data", flush=True)
 
 except Exception as e:
-    print("❌ JSON error:", e)
+    print("❌ JSON error:", e, flush=True)
 
-# ✅ Remove duplicates
 clean = []
 seen = set()
 
@@ -60,29 +58,30 @@ for item in result:
 
 result = clean
 
-print("✅ Cleaned data count:", len(result))
+print("✅ Cleaned total records:", len(result), flush=True)
 
-# ✅ Save file
 filename = "full_dividends.json"
 
 with open(filename, "w") as f:
     json.dump(result, f, indent=4)
 
-print("✅ File saved successfully")
+print("✅ File saved", flush=True)
 
-# ✅ Upload via HTTP
+# ✅ Upload part
 try:
-    print("🚀 Uploading...")
+    print("🚀 Uploading...", flush=True)
 
     upload_url = "https://dswealthadvisors.in/upload.php"
+
     files = {"file": open(filename, "rb")}
     data = {"key": "dswealth_secure_key"}
 
     response = requests.post(upload_url, files=files, data=data, timeout=20)
 
-    print("✅ Upload response:", response.text)
+    print("✅ Upload response:", response.text, flush=True)
 
 except Exception as e:
-    print("❌ Upload error:", e)
+    print("❌ Upload error:", e, flush=True)
 
-print("✅ Script finished!")
+print("✅ Script finished", flush=True)
+``
