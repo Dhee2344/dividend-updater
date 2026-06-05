@@ -11,11 +11,14 @@ headers = {
     "Referer": "https://www.nseindia.com/"
 }
 
+print("✅ Starting script...")
+
 session = requests.Session()
 session.get("https://www.nseindia.com", headers=headers)
 
 response = session.get(url, headers=headers)
-print("Status Code:", response.status_code)
+
+print("✅ API Response:", response.status_code)
 
 result = []
 
@@ -24,10 +27,11 @@ if os.path.exists("full_dividends.json"):
     try:
         with open("full_dividends.json", "r") as f:
             result.extend(json.load(f))
+        print("✅ Loaded existing data")
     except:
-        print("Old data load error")
+        print("⚠️ Error loading old data")
 
-# ✅ Parse new data
+# ✅ Parse data
 try:
     data = response.json()
 
@@ -39,8 +43,10 @@ try:
                 "dividend": str(item.get("faceVal")) + " Rs"
             })
 
+    print("✅ Parsed new data")
+
 except Exception as e:
-    print("JSON error:", e)
+    print("❌ JSON error:", e)
 
 # ✅ Remove duplicates
 clean = []
@@ -54,24 +60,29 @@ for item in result:
 
 result = clean
 
+print("✅ Cleaned data count:", len(result))
+
 # ✅ Save file
 filename = "full_dividends.json"
 
 with open(filename, "w") as f:
     json.dump(result, f, indent=4)
 
-print("✅ Data saved:", len(result))
+print("✅ File saved successfully")
 
-# ✅ HTTP UPLOAD (FINAL FIX)
+# ✅ Upload via HTTP
 try:
-    print("🚀 Uploading via HTTP...")
+    print("🚀 Uploading...")
 
     upload_url = "https://dswealthadvisors.in/upload.php"
-
     files = {"file": open(filename, "rb")}
-    response = requests.post(upload_url, files=files)
+    data = {"key": "dswealth_secure_key"}
 
-    print("✅ Server response:", response.text)
+    response = requests.post(upload_url, files=files, data=data, timeout=20)
+
+    print("✅ Upload response:", response.text)
 
 except Exception as e:
-    print("❌ Upload failed:", e)
+    print("❌ Upload error:", e)
+
+print("✅ Script finished!")
