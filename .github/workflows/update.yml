@@ -1,25 +1,87 @@
-name: Update Dividends
+import requests
+import json
+import os
 
-on:
-  schedule:
-    - cron: "30 0 * * *"
-  workflow_dispatch:
+print("✅ Script started", flush=True)
 
-jobs:
-  run-script:
-    runs-on: ubuntu-latest
+url = "https://www.nseindia.com/api/corporates-corporateActions?index=equities"
 
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v3
+headers = {
+    "User-Agent": "Mozilla/5.0",
+    "Accept": "application/json",
+    "Referer": "https://www.nseindia.com/"
+}
 
-      - name: Setup Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: "3.11"
+session = requests.Session()
+session.get("https://www.nseindia.com", headers=headers)
 
-      - name: Install requests
-        run: pip install requests
+print("✅ Cookies loaded", flush=True)
 
-      - name: Run script
-        run: python fetch_dividends.py
+response = session.get(url, headers=headers)
+
+print("✅ API Response:", response.status_code, flush=True)
+
+result = []
+
+if os.path.exists("full_dividends.json"):
+    try:
+        with open("full_dividends.json", "r") as f:
+            result.extend(json.load(f))
+        print("✅ Loaded old data", flush=True)
+    except:
+        print("⚠️ Error loading old data", flush=True)
+
+try:
+    data = response.json()
+
+    for item in data:
+        if item.get("faceVal") and item.get("exDate"):
+            result.append({
+                "company": item.get("comp"),
+                "ex_date": item.get("exDate"),
+                "dividend": str(item.get("faceVal")) + " Rs"
+            })
+
+    print("✅ Parsed new data", flush=True)
+
+except Exception as e:
+    print("❌ JSON error:", e, flush=True)
+
+clean = []
+seen = set()
+
+for item in result:
+    key = (item["company"], item["ex_date"])
+    if key not in seen:
+        seen.add(key)
+        clean.append(item)
+
+result = clean
+
+print("✅ Cleaned total records:", len(result), flush=True)
+
+filename = "full_dividends.json"
+
+with open(filename, "w") as f:
+    json.dump(result, f, indent=4)
+
+print("✅ File saved", flush=True)
+
+# ✅ Upload part
+try:
+    print("🚀 Uploading...", flush=True)
+
+    upload_url = "https://dswealthadvisors.in/upload.php"
+
+    files = {"file": open(filename, "rb")}
+    data = {"key": "dswealth_secure_key"}
+
+    response = requests.post(upload_url, files=files, data=data, timeout=20)
+
+    print("✅ Upload response:", response.text, flush=True)
+
+except Exception as e:
+    print("❌ Upload error:", e, flush=True)
+
+print("✅ Script finished", flush=True)
+``
